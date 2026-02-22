@@ -1,15 +1,21 @@
 package medical.app.backend.appointment.service;
 
 import medical.app.backend.appointment.dto.AppointmentResponse;
+import medical.app.backend.appointment.dto.CancelAppointmentRequest;
 import medical.app.backend.appointment.dto.CreateAppointmentRequest;
+import medical.app.backend.appointment.dto.DayAppointmentsQuery;
+import medical.app.backend.appointment.dto.MonthAppointmentsQuery;
+import medical.app.backend.appointment.dto.WeekAppointmentsQuery;
+import medical.app.backend.appointment.enums.AppointmentStatus;
 import medical.app.backend.appointment.model.Appointment;
-import medical.app.backend.appointment.model.AppointmentStatus;
 import medical.app.backend.appointment.repository.AppointmentRepository;
 import medical.app.backend.common.exception.ResourceNotFoundException;
 import medical.app.backend.common.exception.UnauthorizedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 
 @Service
@@ -50,9 +56,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public AppointmentResponse cancel(Long id, String patientUserId) {
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Appointment", id));
+    public AppointmentResponse cancel(CancelAppointmentRequest request, String patientUserId) {
+        Appointment appointment = appointmentRepository.findById(request.appointmentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment", request.appointmentId()));
 
         if (!appointment.getPatientUserId().equals(patientUserId)) {
             throw new UnauthorizedException("You are not authorised to cancel this appointment");
@@ -60,5 +66,38 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
         return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AppointmentResponse> getAvailableAppointmentsForDay(DayAppointmentsQuery query) {
+        LocalDateTime from = query.date().atStartOfDay();
+        LocalDateTime to   = query.date().plusDays(1).atStartOfDay();
+        return fetchExcludingCancelled(from, to);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AppointmentResponse> getAvailableAppointmentsForWeek(WeekAppointmentsQuery query) {
+        LocalDateTime from = query.weekStart().atStartOfDay();
+        LocalDateTime to   = query.weekStart().plusWeeks(1).atStartOfDay();
+        return fetchExcludingCancelled(from, to);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AppointmentResponse> getAvailableAppointmentsForMonth(MonthAppointmentsQuery query) {
+        YearMonth yearMonth = YearMonth.of(query.year(), query.month());
+        LocalDateTime from  = yearMonth.atDay(1).atStartOfDay();
+        LocalDateTime to    = yearMonth.atEndOfMonth().plusDays(1).atStartOfDay();
+        return fetchExcludingCancelled(from, to);
+    }
+
+    private List<AppointmentResponse> fetchExcludingCancelled(LocalDateTime from, LocalDateTime to) {
+        return appointmentRepository
+                .findByScheduledAtBetweenAndStatusNot(from, to, AppointmentStatus.CANCELLED)
+                .stream()
+                .map(AppointmentResponse::from)
+                .toList();
     }
 }

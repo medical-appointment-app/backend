@@ -1,7 +1,7 @@
 package medical.app.backend.appointment.dto;
 
 import medical.app.backend.appointment.model.Appointment;
-import medical.app.backend.appointment.model.AppointmentStatus;
+import medical.app.backend.appointment.enums.AppointmentStatus;
 
 import java.time.LocalDateTime;
 

@@ -1,6 +1,7 @@
 package medical.app.backend.appointment.model;
 
 import jakarta.persistence.*;
+import medical.app.backend.appointment.enums.AppointmentStatus;
 import java.time.LocalDateTime;
 
 @Entity
@@ -30,6 +31,10 @@ public class Appointment {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    /** Duration of the appointment in minutes. */
+    @Column(nullable = false)
+    private Integer durationMinutes;
+
     @PrePersist
     private void prePersist() {
         createdAt = LocalDateTime.now();
@@ -57,4 +62,7 @@ public class Appointment {
     public void setNotes(String notes) { this.notes = notes; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
+
+    public Integer getDurationMinutes() { return durationMinutes; }
+    public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
 }

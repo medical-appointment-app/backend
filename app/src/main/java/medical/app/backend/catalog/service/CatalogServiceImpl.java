@@ -1,5 +1,6 @@
 package medical.app.backend.catalog.service;
 
+import medical.app.backend.catalog.dto.CatalogByCategoryRequest;
 import medical.app.backend.catalog.dto.CatalogItemResponse;
 import medical.app.backend.catalog.repository.CatalogItemRepository;
 import medical.app.backend.common.exception.ResourceNotFoundException;
@@ -27,8 +28,8 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
-    public List<CatalogItemResponse> getByCategory(String category) {
-        return catalogItemRepository.findByCategoryAndAvailableTrue(category)
+    public List<CatalogItemResponse> getByCategory(CatalogByCategoryRequest request) {
+        return catalogItemRepository.findByCategoryAndAvailableTrue(request.category())
                 .stream()
                 .map(CatalogItemResponse::from)
                 .toList();

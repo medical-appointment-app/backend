@@ -1,4 +1,4 @@
-package medical.app.backend.appointment.model;
+package medical.app.backend.appointment.enums;
 
 public enum AppointmentStatus {
     PENDING,

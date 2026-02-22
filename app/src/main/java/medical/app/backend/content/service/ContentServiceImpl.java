@@ -1,6 +1,8 @@
 package medical.app.backend.content.service;
 
 import medical.app.backend.common.exception.ResourceNotFoundException;
+import medical.app.backend.content.dto.ContentByLocaleRequest;
+import medical.app.backend.content.dto.ContentBySlugRequest;
 import medical.app.backend.content.dto.ContentPageResponse;
 import medical.app.backend.content.repository.ContentPageRepository;
 import org.springframework.stereotype.Service;
@@ -19,16 +21,16 @@ public class ContentServiceImpl implements ContentService {
     }
 
     @Override
-    public ContentPageResponse getBySlug(String slug, String locale) {
-        return contentPageRepository.findBySlugAndLocale(slug, locale)
+    public ContentPageResponse getBySlug(ContentBySlugRequest request) {
+        return contentPageRepository.findBySlugAndLocale(request.slug(), request.locale())
                 .map(ContentPageResponse::from)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Content page not found: slug=" + slug + ", locale=" + locale));
+                        "Content page not found: slug=" + request.slug() + ", locale=" + request.locale()));
     }
 
     @Override
-    public List<ContentPageResponse> getAllByLocale(String locale) {
-        return contentPageRepository.findByLocale(locale)
+    public List<ContentPageResponse> getAllByLocale(ContentByLocaleRequest request) {
+        return contentPageRepository.findByLocale(request.locale())
                 .stream()
                 .map(ContentPageResponse::from)
                 .toList();
