@@ -1,15 +1,12 @@
 package medical.app.backend.catalog.service;
 
-import medical.app.backend.catalog.dto.CatalogByCategoryRequest;
 import medical.app.backend.catalog.dto.CatalogItemResponse;
-
-import java.util.List;
+import medical.app.backend.catalog.dto.CatalogItemsQuery;
+import medical.app.backend.common.model.PagedResponse;
 
 public interface CatalogService {
 
-    List<CatalogItemResponse> getAvailable();
-
-    List<CatalogItemResponse> getByCategory(CatalogByCategoryRequest request);
+    PagedResponse<CatalogItemResponse> getItems(CatalogItemsQuery query);
 
     CatalogItemResponse getById(Long id);
 }

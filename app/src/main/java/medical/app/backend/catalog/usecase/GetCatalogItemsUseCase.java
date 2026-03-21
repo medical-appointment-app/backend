@@ -1,11 +1,10 @@
 package medical.app.backend.catalog.usecase;
 
-import medical.app.backend.catalog.dto.CatalogByCategoryRequest;
 import medical.app.backend.catalog.dto.CatalogItemResponse;
+import medical.app.backend.catalog.dto.CatalogItemsQuery;
 import medical.app.backend.catalog.service.CatalogService;
+import medical.app.backend.common.model.PagedResponse;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 public class GetCatalogItemsUseCase {
@@ -16,10 +15,7 @@ public class GetCatalogItemsUseCase {
         this.catalogService = catalogService;
     }
 
-    public List<CatalogItemResponse> execute(String category) {
-        if (category != null) {
-            return catalogService.getByCategory(new CatalogByCategoryRequest(category));
-        }
-        return catalogService.getAvailable();
+    public PagedResponse<CatalogItemResponse> execute(CatalogItemsQuery query) {
+        return catalogService.getItems(query);
     }
 }
