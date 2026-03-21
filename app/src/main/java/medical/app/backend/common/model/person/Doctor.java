@@ -1,11 +1,17 @@
 package medical.app.backend.common.model.person;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * The single doctor operating in this system.
  * Stored in the `doctors` table.
  */
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "doctors")
 public class Doctor extends BasePerson {
@@ -15,7 +21,4 @@ public class Doctor extends BasePerson {
      */
     @Column
     private Integer slotDurationMinutes;
-
-    public Integer getSlotDurationMinutes() { return slotDurationMinutes; }
-    public void setSlotDurationMinutes(Integer slotDurationMinutes) { this.slotDurationMinutes = slotDurationMinutes; }
 }

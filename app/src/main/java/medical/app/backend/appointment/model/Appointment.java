@@ -1,9 +1,16 @@
 package medical.app.backend.appointment.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import medical.app.backend.appointment.enums.AppointmentStatus;
+
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "appointments")
 public class Appointment {
@@ -11,7 +18,7 @@ public class Appointment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    
     @Column(nullable = false)
     private String patientUserId;
 
@@ -28,11 +35,12 @@ public class Appointment {
     @Column(length = 1000)
     private String notes;
 
+    @Setter(lombok.AccessLevel.NONE)
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    /** Duration of the appointment in minutes. */
-    @Column(nullable = false)
+    /** Duration of the appointment in minutes. Nullable — filled from doctor's slot duration on create. */
+    @Column
     private Integer durationMinutes;
 
     @PrePersist
@@ -42,27 +50,4 @@ public class Appointment {
             status = AppointmentStatus.PENDING;
         }
     }
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getPatientUserId() { return patientUserId; }
-    public void setPatientUserId(String patientUserId) { this.patientUserId = patientUserId; }
-
-    public String getDoctorId() { return doctorId; }
-    public void setDoctorId(String doctorId) { this.doctorId = doctorId; }
-
-    public LocalDateTime getScheduledAt() { return scheduledAt; }
-    public void setScheduledAt(LocalDateTime scheduledAt) { this.scheduledAt = scheduledAt; }
-
-    public AppointmentStatus getStatus() { return status; }
-    public void setStatus(AppointmentStatus status) { this.status = status; }
-
-    public String getNotes() { return notes; }
-    public void setNotes(String notes) { this.notes = notes; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    public Integer getDurationMinutes() { return durationMinutes; }
-    public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
 }

@@ -1,7 +1,7 @@
 package medical.app.backend.appointment.dto;
 
-import medical.app.backend.appointment.model.Appointment;
 import medical.app.backend.appointment.enums.AppointmentStatus;
+import medical.app.backend.appointment.model.Appointment;
 
 import java.time.LocalDateTime;
 
@@ -12,6 +12,7 @@ public record AppointmentResponse(
         LocalDateTime scheduledAt,
         AppointmentStatus status,
         String notes,
+        Integer durationMinutes,
         LocalDateTime createdAt) {
 
     public static AppointmentResponse from(Appointment appointment) {
@@ -22,6 +23,7 @@ public record AppointmentResponse(
                 appointment.getScheduledAt(),
                 appointment.getStatus(),
                 appointment.getNotes(),
+                appointment.getDurationMinutes(),
                 appointment.getCreatedAt()
         );
     }

@@ -21,7 +21,8 @@ public class WebConfig implements WebMvcConfigurer {
                 // Public paths that do not require an authenticated session
                 .excludePathPatterns(
                         "/api/catalog/**",
-                        "/api/content/**"
+                        "/api/content/**",
+                        "/api/doctor/**"
                 );
     }
 }

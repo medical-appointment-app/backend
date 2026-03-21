@@ -1,10 +1,16 @@
 package medical.app.backend.common.model.person;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * A back-office administrator. Stored in the `admins` table.
  */
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "admins")
 public class Admin extends BasePerson {
@@ -24,7 +30,4 @@ public class Admin extends BasePerson {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AccessLevel accessLevel;
-
-    public AccessLevel getAccessLevel() { return accessLevel; }
-    public void setAccessLevel(AccessLevel accessLevel) { this.accessLevel = accessLevel; }
 }

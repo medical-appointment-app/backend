@@ -1,6 +1,10 @@
 package medical.app.backend.common.model.person;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 /**
@@ -8,6 +12,9 @@ import java.time.LocalDateTime;
  * Uses @MappedSuperclass so each subclass gets its own table
  * with these columns inlined — no base table, no joins required.
  */
+@Getter
+@Setter
+@NoArgsConstructor
 @MappedSuperclass
 public abstract class BasePerson {
 
@@ -27,9 +34,11 @@ public abstract class BasePerson {
     @Column
     private String phoneNumber;
 
+    @Setter(lombok.AccessLevel.NONE)
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Setter(lombok.AccessLevel.NONE)
     @Column
     private LocalDateTime updatedAt;
 
@@ -42,25 +51,6 @@ public abstract class BasePerson {
     private void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
 
     public String getFullName() {
         return firstName + " " + lastName;

@@ -1,7 +1,13 @@
 package medical.app.backend.content.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "content_pages", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"slug", "locale"})
@@ -27,19 +33,4 @@ public class ContentPage {
      */
     @Column(nullable = false, length = 10)
     private String locale;
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getSlug() { return slug; }
-    public void setSlug(String slug) { this.slug = slug; }
-
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-
-    public String getBody() { return body; }
-    public void setBody(String body) { this.body = body; }
-
-    public String getLocale() { return locale; }
-    public void setLocale(String locale) { this.locale = locale; }
 }

@@ -7,11 +7,13 @@ import medical.app.backend.appointment.dto.DayAppointmentsQuery;
 import medical.app.backend.appointment.dto.MonthAppointmentsQuery;
 import medical.app.backend.appointment.dto.WeekAppointmentsQuery;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface AppointmentService {
 
-    AppointmentResponse create(String patientUserId, CreateAppointmentRequest request);
+    AppointmentResponse create(String patientUserId, CreateAppointmentRequest request, int defaultSlotDurationMinutes);
 
     List<AppointmentResponse> getByPatient(String patientUserId);
 
@@ -19,9 +21,13 @@ public interface AppointmentService {
 
     AppointmentResponse cancel(CancelAppointmentRequest request, String patientUserId);
 
-    List<AppointmentResponse> getAvailableAppointmentsForDay(DayAppointmentsQuery query);
+    /** Returns non-cancelled appointments in the given time window (what is booked). */
+    List<AppointmentResponse> getBookedAppointmentsForDay(DayAppointmentsQuery query);
 
-    List<AppointmentResponse> getAvailableAppointmentsForWeek(WeekAppointmentsQuery query);
+    List<AppointmentResponse> getBookedAppointmentsForWeek(WeekAppointmentsQuery query);
 
-    List<AppointmentResponse> getAvailableAppointmentsForMonth(MonthAppointmentsQuery query);
+    List<AppointmentResponse> getBookedAppointmentsForMonth(MonthAppointmentsQuery query);
+
+    /** Returns the scheduledAt times of non-cancelled appointments on a given day (used for slot computation). */
+    List<LocalDateTime> getBookedTimesForDay(LocalDate date);
 }

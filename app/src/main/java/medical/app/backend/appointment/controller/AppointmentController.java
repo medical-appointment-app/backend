@@ -2,6 +2,7 @@ package medical.app.backend.appointment.controller;
 
 import jakarta.validation.Valid;
 import medical.app.backend.appointment.dto.AppointmentResponse;
+import medical.app.backend.appointment.dto.AvailableSlotResponse;
 import medical.app.backend.appointment.dto.CancelAppointmentRequest;
 import medical.app.backend.appointment.dto.CreateAppointmentRequest;
 import medical.app.backend.appointment.dto.DayAppointmentsQuery;
@@ -65,22 +66,32 @@ public class AppointmentController {
         return ResponseBuilder.ok(cancelAppointmentUseCase.execute(new CancelAppointmentRequest(id), userId));
     }
 
-    @GetMapping("/available/day")
-    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getAvailableForDay(
+    // ── Booked appointments (what is already taken) ────────────────────────
+
+    @GetMapping("/booked/day")
+    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getBookedForDay(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return ResponseBuilder.ok(getAvailableAppointmentsUseCase.executeForDay(new DayAppointmentsQuery(date)));
+        return ResponseBuilder.ok(getAvailableAppointmentsUseCase.executeBookedForDay(new DayAppointmentsQuery(date)));
     }
 
-    @GetMapping("/available/week")
-    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getAvailableForWeek(
+    @GetMapping("/booked/week")
+    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getBookedForWeek(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
-        return ResponseBuilder.ok(getAvailableAppointmentsUseCase.executeForWeek(new WeekAppointmentsQuery(weekStart)));
+        return ResponseBuilder.ok(getAvailableAppointmentsUseCase.executeBookedForWeek(new WeekAppointmentsQuery(weekStart)));
     }
 
-    @GetMapping("/available/month")
-    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getAvailableForMonth(
+    @GetMapping("/booked/month")
+    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getBookedForMonth(
             @RequestParam int year,
             @RequestParam int month) {
-        return ResponseBuilder.ok(getAvailableAppointmentsUseCase.executeForMonth(new MonthAppointmentsQuery(year, month)));
+        return ResponseBuilder.ok(getAvailableAppointmentsUseCase.executeBookedForMonth(new MonthAppointmentsQuery(year, month)));
+    }
+
+    // ── Free slots (what can still be booked) ──────────────────────────────
+
+    @GetMapping("/slots")
+    public ResponseEntity<ApiResponse<List<AvailableSlotResponse>>> getAvailableSlots(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseBuilder.ok(getAvailableAppointmentsUseCase.executeSlotsForDay(date));
     }
 }

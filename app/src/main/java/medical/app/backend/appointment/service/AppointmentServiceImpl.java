@@ -14,6 +14,7 @@ import medical.app.backend.common.exception.UnauthorizedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
@@ -29,12 +30,17 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public AppointmentResponse create(String patientUserId, CreateAppointmentRequest request) {
+    public AppointmentResponse create(String patientUserId, CreateAppointmentRequest request,
+                                      int defaultSlotDurationMinutes) {
         Appointment appointment = new Appointment();
         appointment.setPatientUserId(patientUserId);
         appointment.setDoctorId(request.doctorId());
         appointment.setScheduledAt(request.scheduledAt());
         appointment.setNotes(request.notes());
+        appointment.setDurationMinutes(
+                request.durationMinutes() != null
+                        ? request.durationMinutes()
+                        : defaultSlotDurationMinutes);
         return AppointmentResponse.from(appointmentRepository.save(appointment));
     }
 
@@ -70,7 +76,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> getAvailableAppointmentsForDay(DayAppointmentsQuery query) {
+    public List<AppointmentResponse> getBookedAppointmentsForDay(DayAppointmentsQuery query) {
         LocalDateTime from = query.date().atStartOfDay();
         LocalDateTime to   = query.date().plusDays(1).atStartOfDay();
         return fetchExcludingCancelled(from, to);
@@ -78,7 +84,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> getAvailableAppointmentsForWeek(WeekAppointmentsQuery query) {
+    public List<AppointmentResponse> getBookedAppointmentsForWeek(WeekAppointmentsQuery query) {
         LocalDateTime from = query.weekStart().atStartOfDay();
         LocalDateTime to   = query.weekStart().plusWeeks(1).atStartOfDay();
         return fetchExcludingCancelled(from, to);
@@ -86,11 +92,23 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> getAvailableAppointmentsForMonth(MonthAppointmentsQuery query) {
+    public List<AppointmentResponse> getBookedAppointmentsForMonth(MonthAppointmentsQuery query) {
         YearMonth yearMonth = YearMonth.of(query.year(), query.month());
         LocalDateTime from  = yearMonth.atDay(1).atStartOfDay();
         LocalDateTime to    = yearMonth.atEndOfMonth().plusDays(1).atStartOfDay();
         return fetchExcludingCancelled(from, to);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LocalDateTime> getBookedTimesForDay(LocalDate date) {
+        LocalDateTime from = date.atStartOfDay();
+        LocalDateTime to   = date.plusDays(1).atStartOfDay();
+        return appointmentRepository
+                .findByScheduledAtBetweenAndStatusNot(from, to, AppointmentStatus.CANCELLED)
+                .stream()
+                .map(Appointment::getScheduledAt)
+                .toList();
     }
 
     private List<AppointmentResponse> fetchExcludingCancelled(LocalDateTime from, LocalDateTime to) {

@@ -1,14 +1,25 @@
 package medical.app.backend.common.model.person;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDate;
 
 /**
  * A registered patient. Stored in the `users` table.
  */
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "users")
 public class User extends BasePerson {
+
+    /** The user ID issued by the external auth gateway — links this profile to a session. */
+    @Column(unique = true)
+    private String externalId;
 
     @Column
     private LocalDate dateOfBirth;
@@ -21,13 +32,4 @@ public class User extends BasePerson {
      */
     @Column(length = 5)
     private String bloodType;
-
-    public LocalDate getDateOfBirth() { return dateOfBirth; }
-    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
-
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-
-    public String getBloodType() { return bloodType; }
-    public void setBloodType(String bloodType) { this.bloodType = bloodType; }
 }
