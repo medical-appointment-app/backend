@@ -13,6 +13,7 @@ public record AppointmentResponse(
         AppointmentStatus status,
         String notes,
         Integer durationMinutes,
+        LocalDateTime lockedUntil,
         LocalDateTime createdAt) {
 
     public static AppointmentResponse from(Appointment appointment) {
@@ -24,6 +25,7 @@ public record AppointmentResponse(
                 appointment.getStatus(),
                 appointment.getNotes(),
                 appointment.getDurationMinutes(),
+                appointment.getLockedUntil(),
                 appointment.getCreatedAt()
         );
     }

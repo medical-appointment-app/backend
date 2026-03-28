@@ -6,12 +6,15 @@ import medical.app.backend.appointment.dto.AvailableSlotResponse;
 import medical.app.backend.appointment.dto.CancelAppointmentRequest;
 import medical.app.backend.appointment.dto.CreateAppointmentRequest;
 import medical.app.backend.appointment.dto.DayAppointmentsQuery;
+import medical.app.backend.appointment.dto.LockSlotRequest;
 import medical.app.backend.appointment.dto.MonthAppointmentsQuery;
 import medical.app.backend.appointment.dto.WeekAppointmentsQuery;
 import medical.app.backend.appointment.usecase.BookAppointmentUseCase;
 import medical.app.backend.appointment.usecase.CancelAppointmentUseCase;
+import medical.app.backend.appointment.usecase.ConfirmAppointmentUseCase;
 import medical.app.backend.appointment.usecase.GetAvailableAppointmentsUseCase;
 import medical.app.backend.appointment.usecase.GetPatientAppointmentsUseCase;
+import medical.app.backend.appointment.usecase.LockAppointmentSlotUseCase;
 import medical.app.backend.common.context.RequestContext;
 import medical.app.backend.common.model.ApiResponse;
 import medical.app.backend.common.web.ResponseBuilder;
@@ -27,20 +30,55 @@ import java.util.List;
 public class AppointmentController {
 
     private final BookAppointmentUseCase bookAppointmentUseCase;
+    private final LockAppointmentSlotUseCase lockAppointmentSlotUseCase;
+    private final ConfirmAppointmentUseCase confirmAppointmentUseCase;
     private final CancelAppointmentUseCase cancelAppointmentUseCase;
     private final GetPatientAppointmentsUseCase getPatientAppointmentsUseCase;
     private final GetAvailableAppointmentsUseCase getAvailableAppointmentsUseCase;
 
     public AppointmentController(
             BookAppointmentUseCase bookAppointmentUseCase,
+            LockAppointmentSlotUseCase lockAppointmentSlotUseCase,
+            ConfirmAppointmentUseCase confirmAppointmentUseCase,
             CancelAppointmentUseCase cancelAppointmentUseCase,
             GetPatientAppointmentsUseCase getPatientAppointmentsUseCase,
             GetAvailableAppointmentsUseCase getAvailableAppointmentsUseCase) {
         this.bookAppointmentUseCase = bookAppointmentUseCase;
+        this.lockAppointmentSlotUseCase = lockAppointmentSlotUseCase;
+        this.confirmAppointmentUseCase = confirmAppointmentUseCase;
         this.cancelAppointmentUseCase = cancelAppointmentUseCase;
         this.getPatientAppointmentsUseCase = getPatientAppointmentsUseCase;
         this.getAvailableAppointmentsUseCase = getAvailableAppointmentsUseCase;
     }
+
+    // ── Two-step booking flow ─────────────────────────────────────────────
+    // 1. POST /reserve  — patient selects a slot (holds it for 10 min)
+    // 2. POST /{id}/confirm — patient finalises the booking
+
+    /**
+     * Step 1 — Patient selects a slot on the approval page.
+     * Internally reserves the slot for 10 minutes; returns a lockedUntil timestamp
+     * so the client can show a countdown before the hold expires.
+     * HTTP 409 if another patient has already taken the slot.
+     */
+    @PostMapping("/reserve")
+    public ResponseEntity<ApiResponse<AppointmentResponse>> reserve(
+            @Valid @RequestBody LockSlotRequest request) {
+        String userId = RequestContext.getSessionInfo().userId();
+        return ResponseBuilder.created(lockAppointmentSlotUseCase.execute(userId, request));
+    }
+
+    /**
+     * Step 2 — Confirm a previously locked appointment.
+     * HTTP 409 if the lock has expired or the slot is in an invalid state.
+     */
+    @PostMapping("/{id}/confirm")
+    public ResponseEntity<ApiResponse<AppointmentResponse>> confirm(@PathVariable Long id) {
+        String userId = RequestContext.getSessionInfo().userId();
+        return ResponseBuilder.ok(confirmAppointmentUseCase.execute(id, userId));
+    }
+
+    // ── Direct booking (admin / legacy) ───────────────────────────────────
 
     @PostMapping
     public ResponseEntity<ApiResponse<AppointmentResponse>> create(
@@ -48,6 +86,8 @@ public class AppointmentController {
         String userId = RequestContext.getSessionInfo().userId();
         return ResponseBuilder.created(bookAppointmentUseCase.execute(userId, request));
     }
+
+    // ── Patient appointment queries ────────────────────────────────────────
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getMyAppointments() {
@@ -87,7 +127,7 @@ public class AppointmentController {
         return ResponseBuilder.ok(getAvailableAppointmentsUseCase.executeBookedForMonth(new MonthAppointmentsQuery(year, month)));
     }
 
-    // ── Free slots (what can still be booked) ──────────────────────────────
+    // ── Free slots (what can still be booked) ─────────────────────────────
 
     @GetMapping("/slots")
     public ResponseEntity<ApiResponse<List<AvailableSlotResponse>>> getAvailableSlots(

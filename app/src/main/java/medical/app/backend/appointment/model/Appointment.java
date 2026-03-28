@@ -18,7 +18,11 @@ public class Appointment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    /** Optimistic lock — prevents concurrent modifications to the same record. */
+    @Version
+    private Long version;
+
     @Column(nullable = false)
     private String patientUserId;
 
@@ -42,6 +46,10 @@ public class Appointment {
     /** Duration of the appointment in minutes. Nullable — filled from doctor's slot duration on create. */
     @Column
     private Integer durationMinutes;
+
+    /** Non-null only when status = LOCKED. After this instant the slot is released. */
+    @Column
+    private LocalDateTime lockedUntil;
 
     @PrePersist
     private void prePersist() {

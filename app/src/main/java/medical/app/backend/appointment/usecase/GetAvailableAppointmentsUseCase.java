@@ -57,7 +57,8 @@ public class GetAvailableAppointmentsUseCase {
     public List<AvailableSlotResponse> executeSlotsForDay(LocalDate date) {
         int slotDuration = doctorService.getSlotDurationMinutes();
 
-        Set<LocalTime> bookedTimes = appointmentService.getBookedTimesForDay(date)
+        // Use getActiveTimesForDay so that expired locks free up the slot immediately.
+        Set<LocalTime> bookedTimes = appointmentService.getActiveTimesForDay(date)
                 .stream()
                 .map(LocalDateTime::toLocalTime)
                 .collect(Collectors.toSet());

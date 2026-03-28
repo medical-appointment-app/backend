@@ -4,6 +4,7 @@ import medical.app.backend.appointment.dto.AppointmentResponse;
 import medical.app.backend.appointment.dto.CancelAppointmentRequest;
 import medical.app.backend.appointment.dto.CreateAppointmentRequest;
 import medical.app.backend.appointment.dto.DayAppointmentsQuery;
+import medical.app.backend.appointment.dto.LockSlotRequest;
 import medical.app.backend.appointment.dto.MonthAppointmentsQuery;
 import medical.app.backend.appointment.dto.WeekAppointmentsQuery;
 import medical.app.backend.appointment.enums.AppointmentStatus;
@@ -11,6 +12,9 @@ import medical.app.backend.appointment.model.Appointment;
 import medical.app.backend.appointment.repository.AppointmentRepository;
 import medical.app.backend.common.exception.ResourceNotFoundException;
 import medical.app.backend.common.exception.UnauthorizedException;
+import org.springframework.dao.DataIntegrityViolationException;
+
+import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,10 +42,73 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setScheduledAt(request.scheduledAt());
         appointment.setNotes(request.notes());
         appointment.setDurationMinutes(
-                request.durationMinutes() != null
-                        ? request.durationMinutes()
-                        : defaultSlotDurationMinutes);
+                Objects.requireNonNullElse(request.durationMinutes(), defaultSlotDurationMinutes));
         return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    @Override
+    public AppointmentResponse lockSlot(String patientUserId, LockSlotRequest request,
+                                        int slotDurationMinutes, int lockTtlMinutes) {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Pessimistic write lock — concurrent transactions wait here instead of racing.
+        boolean slotTaken = appointmentRepository.findActiveSlotForLocking(
+                request.scheduledAt(),
+                AppointmentStatus.CANCELLED,
+                AppointmentStatus.LOCKED,
+                now).isPresent();
+
+        if (slotTaken) {
+            throw new IllegalStateException("This slot is already taken. Please choose another time.");
+        }
+
+        Appointment appointment = new Appointment();
+        appointment.setPatientUserId(patientUserId);
+        appointment.setDoctorId(request.doctorId());
+        appointment.setScheduledAt(request.scheduledAt());
+        appointment.setNotes(request.notes());
+        appointment.setDurationMinutes(slotDurationMinutes);
+        appointment.setStatus(AppointmentStatus.LOCKED);
+        appointment.setLockedUntil(now.plusMinutes(lockTtlMinutes));
+
+        try {
+            return AppointmentResponse.from(appointmentRepository.saveAndFlush(appointment));
+        } catch (DataIntegrityViolationException e) {
+            // Partial unique index fires when two transactions race past the check above.
+            throw new IllegalStateException("This slot is already taken. Please choose another time.");
+        }
+    }
+
+    @Override
+    public AppointmentResponse confirmAppointment(Long appointmentId, String patientUserId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment", appointmentId));
+
+        if (!appointment.getPatientUserId().equals(patientUserId)) {
+            throw new UnauthorizedException("You are not authorised to confirm this appointment.");
+        }
+
+        if (appointment.getStatus() != AppointmentStatus.LOCKED) {
+            throw new IllegalStateException(
+                    "Appointment cannot be confirmed from status: " + appointment.getStatus());
+        }
+
+        if (appointment.getLockedUntil().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException(
+                    "Your hold on this slot has expired. Please lock it again.");
+        }
+
+        appointment.setStatus(AppointmentStatus.CONFIRMED);
+        appointment.setLockedUntil(null);
+        return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    @Override
+    public int releaseExpiredLocks() {
+        return appointmentRepository.releaseExpiredLocks(
+                AppointmentStatus.LOCKED,
+                AppointmentStatus.CANCELLED,
+                LocalDateTime.now());
     }
 
     @Override
@@ -67,10 +134,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", request.appointmentId()));
 
         if (!appointment.getPatientUserId().equals(patientUserId)) {
-            throw new UnauthorizedException("You are not authorised to cancel this appointment");
+            throw new UnauthorizedException("You are not authorised to cancel this appointment.");
         }
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
+        appointment.setLockedUntil(null);
         return AppointmentResponse.from(appointmentRepository.save(appointment));
     }
 
@@ -101,14 +169,14 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<LocalDateTime> getBookedTimesForDay(LocalDate date) {
+    public List<LocalDateTime> getActiveTimesForDay(LocalDate date) {
         LocalDateTime from = date.atStartOfDay();
         LocalDateTime to   = date.plusDays(1).atStartOfDay();
-        return appointmentRepository
-                .findByScheduledAtBetweenAndStatusNot(from, to, AppointmentStatus.CANCELLED)
-                .stream()
-                .map(Appointment::getScheduledAt)
-                .toList();
+        return appointmentRepository.findActiveScheduledTimesBetween(
+                from, to,
+                AppointmentStatus.CANCELLED,
+                AppointmentStatus.LOCKED,
+                LocalDateTime.now());
     }
 
     private List<AppointmentResponse> fetchExcludingCancelled(LocalDateTime from, LocalDateTime to) {
