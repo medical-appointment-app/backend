@@ -65,7 +65,7 @@ public class AppointmentController {
     public ResponseEntity<ApiResponse<AppointmentResponse>> reserve(
             @Valid @RequestBody LockSlotRequest request) {
         String userId = RequestContext.getSessionInfo().userId();
-        return ResponseBuilder.created(lockAppointmentSlotUseCase.execute(userId, request));
+        return ResponseBuilder.transactional(lockAppointmentSlotUseCase.execute(userId, request));
     }
 
     /**
@@ -75,7 +75,7 @@ public class AppointmentController {
     @PostMapping("/{id}/confirm")
     public ResponseEntity<ApiResponse<AppointmentResponse>> confirm(@PathVariable Long id) {
         String userId = RequestContext.getSessionInfo().userId();
-        return ResponseBuilder.ok(confirmAppointmentUseCase.execute(id, userId));
+        return ResponseBuilder.transactional(confirmAppointmentUseCase.execute(id, userId));
     }
 
     // ── Direct booking (admin / legacy) ───────────────────────────────────
@@ -84,7 +84,7 @@ public class AppointmentController {
     public ResponseEntity<ApiResponse<AppointmentResponse>> create(
             @Valid @RequestBody CreateAppointmentRequest request) {
         String userId = RequestContext.getSessionInfo().userId();
-        return ResponseBuilder.created(bookAppointmentUseCase.execute(userId, request));
+        return ResponseBuilder.transactional(bookAppointmentUseCase.execute(userId, request));
     }
 
     // ── Patient appointment queries ────────────────────────────────────────
@@ -103,7 +103,8 @@ public class AppointmentController {
     @PatchMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<AppointmentResponse>> cancel(@PathVariable Long id) {
         String userId = RequestContext.getSessionInfo().userId();
-        return ResponseBuilder.ok(cancelAppointmentUseCase.execute(new CancelAppointmentRequest(id), userId));
+        return ResponseBuilder.transactional(
+                cancelAppointmentUseCase.execute(new CancelAppointmentRequest(id), userId));
     }
 
     // ── Booked appointments (what is already taken) ────────────────────────

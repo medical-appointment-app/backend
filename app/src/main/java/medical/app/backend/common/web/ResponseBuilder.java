@@ -1,6 +1,7 @@
 package medical.app.backend.common.web;
 
 import medical.app.backend.common.model.ApiResponse;
+import medical.app.backend.common.model.TransactionResult;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -30,5 +31,19 @@ public final class ResponseBuilder {
 
     public static ResponseEntity<ApiResponse<Void>> error(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(ApiResponse.error(message));
+    }
+
+    /**
+     * Convert a {@link TransactionResult} (returned by any execute-type use case)
+     * into the standard HTTP envelope. Status, message, data, and elements are all
+     * forwarded unchanged.
+     */
+    public static <T> ResponseEntity<ApiResponse<T>> transactional(TransactionResult<T> result) {
+        ApiResponse<T> body = new ApiResponse<>(
+                result.success(),
+                result.message(),
+                result.data(),
+                result.elements());
+        return ResponseEntity.status(result.status()).body(body);
     }
 }
