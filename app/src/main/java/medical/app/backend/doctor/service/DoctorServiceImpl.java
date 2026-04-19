@@ -1,10 +1,11 @@
 package medical.app.backend.doctor.service;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import medical.app.backend.common.exception.ResourceNotFoundException;
 import medical.app.backend.doctor.dto.DoctorResponse;
 import medical.app.backend.doctor.repository.DoctorRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
@@ -30,7 +31,7 @@ public class DoctorServiceImpl implements DoctorService {
     public int getSlotDurationMinutes() {
         return doctorRepository.findAll().stream()
                 .findFirst()
-                .map(d -> d.getSlotDurationMinutes() != null
+                .map(d -> d != null && d.getSlotDurationMinutes() > 0
                         ? d.getSlotDurationMinutes()
                         : DEFAULT_SLOT_DURATION_MINUTES)
                 .orElse(DEFAULT_SLOT_DURATION_MINUTES);
