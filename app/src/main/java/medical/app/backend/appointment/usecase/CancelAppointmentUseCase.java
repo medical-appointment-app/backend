@@ -25,19 +25,22 @@ public class CancelAppointmentUseCase extends ExecuteUseCase {
             AppointmentResponse cancelled = appointmentService.cancel(request, patientUserId);
 
             return TransactionResult.success(
-                    "Your appointment has been cancelled.",
+                    messages.get("appointment.cancel.success"),
                     cancelled,
                     List.of(
-                            UiElement.text("Cancelled",
-                                    "The slot on " + cancelled.scheduledAt() + " is now free."),
-                            UiElement.navigateButton("Book another appointment", "appointments"),
+                            UiElement.text(
+                                    messages.get("appointment.cancel.title"),
+                                    messages.get("appointment.cancel.body", cancelled.scheduledAt())),
+                            UiElement.navigateButton(
+                                    messages.get("appointment.cancel.bookAnother"),
+                                    "appointments"),
                             UiElement.homeButton()
                     ));
         });
     }
 
     @Override
-    protected String technicalFailureMessage() {
-        return "We couldn't cancel your appointment. Please try again.";
+    protected String technicalFailureMessageKey() {
+        return "appointment.cancel.technicalFailure";
     }
 }

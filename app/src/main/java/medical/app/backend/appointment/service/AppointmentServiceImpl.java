@@ -12,6 +12,7 @@ import medical.app.backend.appointment.model.Appointment;
 import medical.app.backend.appointment.repository.AppointmentRepository;
 import medical.app.backend.common.exception.ResourceNotFoundException;
 import medical.app.backend.common.exception.UnauthorizedException;
+import medical.app.backend.common.i18n.Messages;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.Objects;
@@ -28,9 +29,11 @@ import java.util.List;
 public class AppointmentServiceImpl implements AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
+    private final Messages messages;
 
-    public AppointmentServiceImpl(AppointmentRepository appointmentRepository) {
+    public AppointmentServiceImpl(AppointmentRepository appointmentRepository, Messages messages) {
         this.appointmentRepository = appointmentRepository;
+        this.messages = messages;
     }
 
     @Override
@@ -59,7 +62,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 now).isPresent();
 
         if (slotTaken) {
-            throw new IllegalStateException("This slot is already taken. Please choose another time.");
+            throw new IllegalStateException(messages.get("appointment.slot.taken"));
         }
 
         Appointment appointment = new Appointment();
@@ -75,7 +78,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             return AppointmentResponse.from(appointmentRepository.saveAndFlush(appointment));
         } catch (DataIntegrityViolationException e) {
             // Partial unique index fires when two transactions race past the check above.
-            throw new IllegalStateException("This slot is already taken. Please choose another time.");
+            throw new IllegalStateException(messages.get("appointment.slot.taken"));
         }
     }
 
@@ -85,17 +88,16 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", appointmentId));
 
         if (!appointment.getPatientUserId().equals(patientUserId)) {
-            throw new UnauthorizedException("You are not authorised to confirm this appointment.");
+            throw new UnauthorizedException(messages.get("appointment.unauthorized.confirm"));
         }
 
         if (appointment.getStatus() != AppointmentStatus.LOCKED) {
             throw new IllegalStateException(
-                    "Appointment cannot be confirmed from status: " + appointment.getStatus());
+                    messages.get("appointment.invalidStatus.confirm", appointment.getStatus()));
         }
 
         if (appointment.getLockedUntil().isBefore(LocalDateTime.now())) {
-            throw new IllegalStateException(
-                    "Your hold on this slot has expired. Please lock it again.");
+            throw new IllegalStateException(messages.get("appointment.hold.expired"));
         }
 
         appointment.setStatus(AppointmentStatus.CONFIRMED);
@@ -134,7 +136,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", request.appointmentId()));
 
         if (!appointment.getPatientUserId().equals(patientUserId)) {
-            throw new UnauthorizedException("You are not authorised to cancel this appointment.");
+            throw new UnauthorizedException(messages.get("appointment.unauthorized.cancel"));
         }
 
         appointment.setStatus(AppointmentStatus.CANCELLED);

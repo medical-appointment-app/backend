@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import medical.app.backend.common.context.RequestContext;
 import medical.app.backend.common.exception.UnauthorizedException;
+import medical.app.backend.common.i18n.Messages;
 import medical.app.backend.session.dto.SessionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ public class SessionValidationInterceptor implements HandlerInterceptor {
     private static final Logger log = LoggerFactory.getLogger(SessionValidationInterceptor.class);
 
     private final SessionValidator sessionValidator;
+    private final Messages messages;
 
     /**
      * Master switch for session validation. Defaults to {@code true}.
@@ -41,8 +43,9 @@ public class SessionValidationInterceptor implements HandlerInterceptor {
     @Value("${app.auth.dev-user-email:dev@local}")
     private String devUserEmail;
 
-    public SessionValidationInterceptor(SessionValidator sessionValidator) {
+    public SessionValidationInterceptor(SessionValidator sessionValidator, Messages messages) {
         this.sessionValidator = sessionValidator;
+        this.messages = messages;
     }
 
     @PostConstruct
@@ -66,11 +69,11 @@ public class SessionValidationInterceptor implements HandlerInterceptor {
 
         String token = request.getHeader(SESSION_TOKEN_HEADER);
         if (token == null || token.isBlank()) {
-            throw new UnauthorizedException("Missing session token");
+            throw new UnauthorizedException(messages.get("session.token.missing"));
         }
 
         SessionInfo sessionInfo = sessionValidator.validate(token)
-                .orElseThrow(() -> new UnauthorizedException("Invalid or expired session"));
+                .orElseThrow(() -> new UnauthorizedException(messages.get("session.invalid")));
 
         RequestContext.setSessionInfo(sessionInfo);
         return true;

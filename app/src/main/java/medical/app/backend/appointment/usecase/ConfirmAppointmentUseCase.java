@@ -24,19 +24,22 @@ public class ConfirmAppointmentUseCase extends ExecuteUseCase {
                     appointmentService.confirmAppointment(appointmentId, patientUserId);
 
             return TransactionResult.success(
-                    "Your appointment is confirmed.",
+                    messages.get("appointment.confirm.success"),
                     confirmed,
                     List.of(
-                            UiElement.text("Confirmation",
-                                    "See you on " + confirmed.scheduledAt() + "."),
-                            UiElement.navigateButton("View my appointments", "my-appointments"),
+                            UiElement.text(
+                                    messages.get("appointment.confirm.title"),
+                                    messages.get("appointment.confirm.body", confirmed.scheduledAt())),
+                            UiElement.navigateButton(
+                                    messages.get("appointment.confirm.viewMine"),
+                                    "my-appointments"),
                             UiElement.homeButton()
                     ));
         });
     }
 
     @Override
-    protected String technicalFailureMessage() {
-        return "We couldn't confirm your appointment. Please try again.";
+    protected String technicalFailureMessageKey() {
+        return "appointment.confirm.technicalFailure";
     }
 }

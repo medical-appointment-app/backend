@@ -3,10 +3,12 @@ package medical.app.backend.common.usecase;
 import medical.app.backend.common.exception.BusinessException;
 import medical.app.backend.common.exception.ResourceNotFoundException;
 import medical.app.backend.common.exception.UnauthorizedException;
+import medical.app.backend.common.i18n.Messages;
 import medical.app.backend.common.model.TransactionResult;
 import medical.app.backend.common.ui.UiElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.TransactionException;
@@ -23,29 +25,21 @@ import java.util.function.Supplier;
  * with a user-facing message and a set of fallback UI elements, so the client
  * can render the result with a single code path regardless of outcome.
  *
- * <p>Failure classification:
- * <ul>
- *   <li><b>{@link BusinessException}</b> — forwarded verbatim (its status,
- *       message, and attached elements). Use this for explicit, user-facing
- *       business failures.</li>
- *   <li><b>{@link IllegalStateException}</b> — treated as a 409 with the
- *       exception's own message (temporary: callers should migrate to
- *       {@code BusinessException}).</li>
- *   <li><b>{@link ResourceNotFoundException}</b> / <b>{@link UnauthorizedException}</b>
- *       — mapped to 404 / 401 with their own message.</li>
- *   <li><b>{@link DataAccessException}</b> / <b>{@link TransactionException}</b>
- *       — DB / transaction failures. 500 with the use-case-specific message
- *       from {@link #technicalFailureMessage()}.</li>
- *   <li><b>Any other {@link Exception}</b> — 500 with the vague
- *       {@code UNKNOWN_FAILURE_MESSAGE}. The original exception is logged.</li>
- * </ul>
+ * <p>User-facing strings are resolved through {@link Messages} so the message
+ * language tracks the incoming request's {@code Accept-Language} header.
  */
 public abstract class ExecuteUseCase {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
-    private static final String UNKNOWN_FAILURE_MESSAGE =
-            "Something went wrong. Please try again in a moment.";
+    /** Message key used when an unexpected (non-technical, non-business) failure occurs. */
+    private static final String UNKNOWN_FAILURE_KEY = "error.unknown";
+
+    /** Default key for technical (DB/transaction) failures — use cases should override. */
+    protected static final String DEFAULT_TECHNICAL_FAILURE_KEY = "error.unknown";
+
+    @Autowired
+    protected Messages messages;
 
     /**
      * Execute the supplied block and translate failures into a failure
@@ -70,27 +64,28 @@ public abstract class ExecuteUseCase {
             return TransactionResult.failure(HttpStatus.CONFLICT, e.getMessage(), defaultFailureElements());
 
         } catch (DataAccessException | TransactionException e) {
-            // Meaningful category, but not a meaningful *message* — use the canned one.
+            // Meaningful category, but not a meaningful *message* — use the localized canned one.
             log.error("Technical failure in {}", getClass().getSimpleName(), e);
             return TransactionResult.failure(
                     HttpStatus.INTERNAL_SERVER_ERROR,
-                    technicalFailureMessage(),
+                    messages.get(technicalFailureMessageKey()),
                     defaultFailureElements());
 
         } catch (Exception e) {
             log.error("Unexpected failure in {}", getClass().getSimpleName(), e);
             return TransactionResult.failure(
                     HttpStatus.INTERNAL_SERVER_ERROR,
-                    UNKNOWN_FAILURE_MESSAGE,
+                    messages.get(UNKNOWN_FAILURE_KEY),
                     defaultFailureElements());
         }
     }
 
     /**
-     * Message shown when a technical (DB / transaction) failure occurs.
-     * Subclasses override to be specific — e.g. "We couldn't complete your booking.".
+     * Message-bundle key resolved against the request locale when a technical
+     * (DB / transaction) failure occurs. Subclasses override to be specific —
+     * e.g. {@code "appointment.book.technicalFailure"}.
      */
-    protected abstract String technicalFailureMessage();
+    protected abstract String technicalFailureMessageKey();
 
     /**
      * UI elements attached to failure results when the exception itself didn't carry any.

@@ -33,19 +33,22 @@ public class LockAppointmentSlotUseCase extends ExecuteUseCase {
                     patientUserId, request, slotDuration, LOCK_TTL_MINUTES);
 
             return TransactionResult.created(
-                    "Slot reserved — please confirm within " + LOCK_TTL_MINUTES + " minutes.",
+                    messages.get("appointment.lock.success", LOCK_TTL_MINUTES),
                     reserved,
                     List.of(
-                            UiElement.text("Your hold",
-                                    "Expires at " + reserved.lockedUntil() + "."),
-                            UiElement.navigateButton("Confirm booking", "appointments/" + reserved.id() + "/confirm"),
+                            UiElement.text(
+                                    messages.get("appointment.lock.hold.title"),
+                                    messages.get("appointment.lock.hold.body", reserved.lockedUntil())),
+                            UiElement.navigateButton(
+                                    messages.get("appointment.lock.confirmCta"),
+                                    "appointments/" + reserved.id() + "/confirm"),
                             UiElement.backButton()
                     ));
         });
     }
 
     @Override
-    protected String technicalFailureMessage() {
-        return "We couldn't reserve this slot. Please try again.";
+    protected String technicalFailureMessageKey() {
+        return "appointment.lock.technicalFailure";
     }
 }

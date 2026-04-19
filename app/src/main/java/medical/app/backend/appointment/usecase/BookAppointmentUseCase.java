@@ -31,19 +31,23 @@ public class BookAppointmentUseCase extends ExecuteUseCase {
                     appointmentService.create(patientUserId, request, defaultSlotDuration);
 
             return TransactionResult.created(
-                    "Your appointment has been booked.",
+                    messages.get("appointment.book.success"),
                     appointment,
                     List.of(
-                            UiElement.text("Confirmation",
-                                    "We'll see you on " + appointment.scheduledAt() + "."),
-                            UiElement.navigateButton("View my appointments", "my-appointments"),
+                            UiElement.text(
+                                    messages.get("appointment.book.confirmation.title"),
+                                    messages.get("appointment.book.confirmation.body",
+                                            appointment.scheduledAt())),
+                            UiElement.navigateButton(
+                                    messages.get("appointment.book.viewMine"),
+                                    "my-appointments"),
                             UiElement.homeButton()
                     ));
         });
     }
 
     @Override
-    protected String technicalFailureMessage() {
-        return "We couldn't complete your booking. Please try again.";
+    protected String technicalFailureMessageKey() {
+        return "appointment.book.technicalFailure";
     }
 }
